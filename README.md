@@ -1,73 +1,64 @@
-#define BLYNK_TEMPLATE_ID "TMPL6TW0sV4Nb"
-#define BLYNK_TEMPLATE_NAME "Motion Detection System"
-#define BLYNK_AUTH_TOKEN "JoHSoFCI7URVt3nfvg7UUw5ziwVgYgot"
+Motion Detection System (ESP32 + PIR + LCD + Blynk)
 
-#include <Wire.h>
-#include <LiquidCrystal_I2C.h>
-#include <WiFi.h>
-#include <WiFiClient.h>
-#include <BlynkSimpleEsp32.h>
+This project implements a smart motion detection system using an ESP32 board, PIR motion sensor, active buzzer, and a 16x2 I2C LCD display.  
+The system also integrates with Blynk IoT, allowing remote monitoring and control from the Blynk mobile app or web dashboard.
 
-char auth[] = BLYNK_AUTH_TOKEN;
-char ssid[] = "Wokwi-GUEST";
-char pass[] = "";
+Features
 
-const int PIR_PIN = 27;
-const int BUZZER_PIN = 25;
+- Detects motion using a PIR sensor  
+- Displays system status on a 16x2 I2C LCD  
+- Activates a buzzer when motion is detected  
+- Sends real‑time motion updates to Blynk  
+- Allows enabling/disabling the PIR sensor remotely via Blynk  
+- Works in Wokwi simulation and on real hardware  
 
-bool sensorEnabled = true;   // Controlled from Blynk
-LiquidCrystal_I2C lcd(0x27, 16, 2);
+Hardware Components
 
-BLYNK_WRITE(V0) {
-  sensorEnabled = param.asInt();
+- ESP32 DevKit V1  
+- PIR Motion Sensor (HC‑SR501)  
+- Active Buzzer  
+- 16x2 LCD with I2C module  
+- Jumper wires  
+- USB cable  
 
-  if (!sensorEnabled) {
-    digitalWrite(BUZZER_PIN, LOW);
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Sensor Disabled");
-    Blynk.virtualWrite(V1, "Sensor Disabled");
-  }
-}
+Wiring Diagram
 
-void setup() {
-  Serial.begin(115200);
+PIR Sensor → ESP32
+PIR Pin to ESP32 Pin 
 
-  pinMode(PIR_PIN, INPUT);
-  pinMode(BUZZER_PIN, OUTPUT);
+VCC to 5V 
+GND to GND
+OUT to GPIO 27 
 
-  lcd.init();
-  lcd.backlight();
-  lcd.setCursor(0, 0);
-  lcd.print("System Ready");
+Buzzer → ESP32
+Buzzer Pin to ESP32 Pin 
 
-  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
-}
+ + to GPIO 25
+ – to GND 
 
-void loop() {
-  Blynk.run();
+I2C LCD → ESP32
+LCD Pin to ESP32 Pin 
 
-  if (!sensorEnabled) return;
+VCC to 5V 
+GND to GND 
+SDA to GPIO 21 
+SCL to GPIO 22 
 
-  int motion = digitalRead(PIR_PIN);
+Blynk Setup
 
-  if (motion == HIGH) {
-    digitalWrite(BUZZER_PIN, HIGH);
+Create a new Blynk Template and copy:
 
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Motion Detected");
+- BLYNK_TEMPLATE_ID
+- BLYNK_TEMPLATE_NAME
+- BLYNK_AUTH_TOKEN
 
-    Blynk.virtualWrite(V1, "Motion Detected");
+Datastreams
+Datastream | Type | Pin 
 
-  } else {
-    digitalWrite(BUZZER_PIN, LOW);
+V0 | Integer | V0 | Enable/Disable PIR 
+V1 | String | V1 | Motion Status 
 
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("No Motion");
-
-    Blynk.virtualWrite(V1, "No Motion");
-  }
-}
+Dashboard Widgets
+- Switch → V0 → “Enable Sensor”
+- Label → V1 → Display Type: Text
 
