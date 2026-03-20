@@ -1,7 +1,9 @@
 #define BLYNK_TEMPLATE_ID "TMPL6TW0sV4Nb"
 #define BLYNK_TEMPLATE_NAME "Motion Detection System"
-#define BLYNK_AUTH_TOKEN "Wwz23rsxyT0CVGffgCBxHcg9Izb6RIIO"
+#define BLYNK_AUTH_TOKEN "JoHSoFCI7URVt3nfvg7UUw5ziwVgYgot"
 
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
 #include <WiFi.h>
 #include <WiFiClient.h>
 #include <BlynkSimpleEsp32.h>
@@ -10,50 +12,62 @@ char auth[] = BLYNK_AUTH_TOKEN;
 char ssid[] = "Wokwi-GUEST";
 char pass[] = "";
 
-int pirPin = 27;
-int greenLED = 26;
-int redLED = 25;
+const int PIR_PIN = 27;
+const int BUZZER_PIN = 25;
 
-bool manualGreen = false;
-bool manualRed = false;
+bool sensorEnabled = true;   // Controlled from Blynk
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 BLYNK_WRITE(V0) {
-  manualGreen = param.asInt();
-  digitalWrite(greenLED, manualGreen);
-}
+  sensorEnabled = param.asInt();
 
-BLYNK_WRITE(V1) {
-  manualRed = param.asInt();
-  digitalWrite(redLED, manualRed);
+  if (!sensorEnabled) {
+    digitalWrite(BUZZER_PIN, LOW);
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Sensor Disabled");
+    Blynk.virtualWrite(V1, "Sensor Disabled");
+  }
 }
 
 void setup() {
   Serial.begin(115200);
 
-  pinMode(pirPin, INPUT);
-  pinMode(greenLED, OUTPUT);
-  pinMode(redLED, OUTPUT);
+  pinMode(PIR_PIN, INPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
 
-  digitalWrite(greenLED, HIGH);
-  digitalWrite(redLED, LOW);
+  lcd.init();
+  lcd.backlight();
+  lcd.setCursor(0, 0);
+  lcd.print("System Ready");
 
-  Blynk.begin(auth, ssid, pass);
+  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
 }
 
 void loop() {
   Blynk.run();
 
-  int motion = digitalRead(pirPin);
+  if (!sensorEnabled) return;
 
-  if (!manualGreen && !manualRed) {
-    if (motion == HIGH) {
-      digitalWrite(redLED, HIGH);
-      digitalWrite(greenLED, LOW);
-      Blynk.virtualWrite(V2, "Motion Detected");
-    } else {
-      digitalWrite(redLED, LOW);
-      digitalWrite(greenLED, HIGH);
-      Blynk.virtualWrite(V2, "No Motion");
-    }
+  int motion = digitalRead(PIR_PIN);
+
+  if (motion == HIGH) {
+    digitalWrite(BUZZER_PIN, HIGH);
+
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Motion Detected");
+
+    Blynk.virtualWrite(V1, "Motion Detected");
+
+  } else {
+    digitalWrite(BUZZER_PIN, LOW);
+
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("No Motion");
+
+    Blynk.virtualWrite(V1, "No Motion");
   }
 }
+
